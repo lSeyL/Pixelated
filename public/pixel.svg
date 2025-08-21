@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pixelated gradient grid icon">
+  <title>Pixelated gradient grid</title>
+  <defs>
+    <!-- Smooth, modern gradient -->
+    <linearGradient id="g" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22d3ee"></stop>
+      <stop offset="40%" stop-color="#3b82f6"></stop>
+      <stop offset="70%" stop-color="#a855f7"></stop>
+      <stop offset="100%" stop-color="#fb7185"></stop>
+    </linearGradient>
+
+    <!-- Mask: reveals only the squares (with gaps) -->
+    <mask id="grid" x="0" y="0" width="64" height="64" maskUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="black"></rect>
+      <g fill="white" shape-rendering="crispEdges">
+        <!-- 5×5 squares; size=8, step=12, margin=2 -->
+        <!-- row 0 -->
+        <rect x="2" y="2" width="8" height="8"></rect>
+        <rect x="14" y="2" width="8" height="8"></rect>
+        <rect x="26" y="2" width="8" height="8"></rect>
+        <rect x="38" y="2" width="8" height="8"></rect>
+        <rect x="50" y="2" width="8" height="8"></rect>
+        <!-- row 1 -->
+        <rect x="2" y="14" width="8" height="8"></rect>
+        <rect x="14" y="14" width="8" height="8"></rect>
+        <rect x="26" y="14" width="8" height="8"></rect>
+        <rect x="38" y="14" width="8" height="8"></rect>
+        <rect x="50" y="14" width="8" height="8"></rect>
+        <!-- row 2 -->
+        <rect x="2" y="26" width="8" height="8"></rect>
+        <rect x="14" y="26" width="8" height="8"></rect>
+        <rect x="26" y="26" width="8" height="8"></rect>
+        <rect x="38" y="26" width="8" height="8"></rect>
+        <rect x="50" y="26" width="8" height="8"></rect>
+        <!-- row 3 -->
+        <rect x="2" y="38" width="8" height="8"></rect>
+        <rect x="14" y="38" width="8" height="8"></rect>
+        <rect x="26" y="38" width="8" height="8"></rect>
+        <rect x="38" y="38" width="8" height="8"></rect>
+        <rect x="50" y="38" width="8" height="8"></rect>
+        <!-- row 4 -->
+        <rect x="2" y="50" width="8" height="8"></rect>
+        <rect x="14" y="50" width="8" height="8"></rect>
+        <rect x="26" y="50" width="8" height="8"></rect>
+        <rect x="38" y="50" width="8" height="8"></rect>
+        <rect x="50" y="50" width="8" height="8"></rect>
+      </g>
+    </mask>
+  </defs>
+
+  <!-- Gradient clipped to the pixel grid -->
+  <rect width="64" height="64" fill="url(#g)" mask="url(#grid)"></rect>
+</svg>
