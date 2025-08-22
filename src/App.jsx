@@ -1,142 +1,8 @@
 import { useMemo, useRef, useState } from "react";
-import {
-  deltaE76,
-  ciede2000,
-  hexToRgb,
-  rgbToHex,
-  rgbToLab,
-} from "./utils/color";
+import { PRESETS, parsePalette } from "./utils/palettes";
+import { buildPaletteLab, nearestColor } from "./utils/nearest";
+import { convertImage } from "./utils/convert";
 import ImageContainer from "./components/ImageContainer";
-function parsePalette(input) {
-  return input
-    .split(/[\s,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((h) => (h.startsWith("#") ? h : `#${h}`));
-}
-
-function nearest(paletteLabArr, r, g, b) {
-  const lab = rgbToLab({ r, g, b });
-  let best = paletteLabArr[0],
-    bestD = Infinity;
-  for (const p of paletteLabArr) {
-    const d = deltaE76(lab, p.lab);
-    if (d < bestD) {
-      bestD = d;
-      best = p;
-    }
-  }
-  return best.rgb;
-}
-
-const PRESETS = {
-  "WPlace Greyscale": [
-    "000000",
-    "3c3c3c",
-    "787878",
-    "aaaaaa",
-    "d2d2d2",
-    "ffffff",
-  ],
-  "WPlace (Full 63)": [
-    "#000000",
-    "#3c3c3c",
-    "#787878",
-    "#aaaaaa",
-    "#d2d2d2",
-    "#ffffff",
-    "#600018",
-    "#a50e1e",
-    "#ed1c24",
-    "#fa8072",
-    "#e45c1a",
-    "#ff7f27",
-    "#f6aa09",
-    "#f9dd3b",
-    "#fffabc",
-    "#9c8431",
-    "#c5ad31",
-    "#e8d45f",
-    "#4a6b3a",
-    "#5a944a",
-    "#84c573",
-    "#0eb968",
-    "#13e67b",
-    "#87ff5e",
-    "#0c816e",
-    "#10aea6",
-    "#13e1be",
-    "#0f799f",
-    "#60f7f2",
-    "#bbfaf2",
-    "#28509e",
-    "#4093e4",
-    "#7dc7ff",
-    "#4d31b8",
-    "#6b50f6",
-    "#99b1fb",
-    "#4a4284",
-    "#7a71c4",
-    "#b5aef1",
-    "#780c99",
-    "#aa38b9",
-    "#e09ff9",
-    "#cb007a",
-    "#ec1f80",
-    "#f38da9",
-    "#9b5249",
-    "#d18078",
-    "#fab6a4",
-    "#684634",
-    "#95682a",
-    "#dba463",
-    "#7b6352",
-    "#9c846b",
-    "#d6b594",
-    "#d18051",
-    "#f8b277",
-    "#ffc5a5",
-    "#6d643f",
-    "#948c6b",
-    "#cdc59e",
-    "#333941",
-    "#6d758d",
-    "#b3b9d1",
-  ],
-  "WPlace (Free)": [
-    "#000000",
-    "#3c3c3c",
-    "#787878",
-    "#d2d2d2",
-    "#ffffff",
-    "#600018",
-    "#ed1c24",
-    "#ff7f27",
-    "#f6aa09",
-    "#f9dd3b",
-    "#fffabc",
-    "#0eb968",
-    "#13e67b",
-    "#87ff5e",
-    "#0c816e",
-    "#10aea6",
-    "#13e1be",
-    "#60f7f2",
-    "#28509e",
-    "#4093e4",
-    "#6b50f6",
-    "#99b1fb",
-    "#780c99",
-    "#aa38b9",
-    "#e09ff9",
-    "#cb007a",
-    "#ec1f80",
-    "#f38da9",
-    "#684634",
-    "#95682a",
-    "#f8b277",
-  ],
-};
 
 export default function App() {
   const fileRef = useRef(null);
@@ -151,6 +17,18 @@ export default function App() {
   const [paletteText, setPaletteText] = useState(
     PRESETS["WPlace Greyscale"].join(",")
   );
+  const [brightness, setBrightness] = useState(0); // -100..100
+  const [contrast, setContrast] = useState(0); // -100..100
+  const [gamma, setGamma] = useState(1); // 0.1..3
+  const [saturation, setSaturation] = useState(1); // 0..2
+  const [sharpness, setSharpness] = useState(0); // 0..200 (%)
+  const [dither, setDither] = useState("floyd");
+
+  // palette array (hex)
+  const palette = useMemo(() => parsePalette(paletteText), [paletteText]);
+
+  // paletteLab array (precomputed RGB + Lab)
+  const paletteLab = useMemo(() => buildPaletteLab(palette), [palette]);
   const w = Number(outWidth) || 0;
   const h = Number(outHeight) || 0;
   const pxSize = Number(pixelSize) || 1;
@@ -160,14 +38,8 @@ export default function App() {
   const blockH = Math.max(1, Math.round(h / pxSize));
   const totalBlocks = blockW * blockH;
 
-  const palette = useMemo(() => parsePalette(paletteText), [paletteText]);
   const isPortrait = outHeight && outWidth ? outHeight >= outWidth : false;
-  const paletteLab = useMemo(() => {
-    return palette.map((hex) => {
-      const rgb = hexToRgb(hex);
-      return { hex, rgb, lab: rgbToLab(rgb) };
-    });
-  }, [palette]);
+
   const fileInputRef = fileRef;
 
   const [isDragging, setIsDragging] = useState(false);
@@ -216,129 +88,22 @@ export default function App() {
     const files = e.dataTransfer?.files;
     if (files && files.length) handleFiles(files);
   }
-  /*
-  function onFileChange() {
-    const f = fileRef.current?.files?.[0];
-    if (!f) return;
 
-    const url = URL.createObjectURL(f);
-    setPreviewURL(url);
-    setResultURL(null);
+  async function handleConvert() {
+    if (!previewURL) return;
+    if (resultURL) URL.revokeObjectURL(resultURL);
 
-    const img = new Image();
-    img.src = url;
-    img.onload = () => {
-      setImgSize({ w: img.width, h: img.height });
-      // default: height 256, width scaled
-      const aspect = img.width / img.height;
-      const newH = 256;
-      const newW = Math.round(newH * aspect);
-      setOutWidth(newW);
-      setOutHeight(newH);
-    };
-  }
-    */
+    const url = await convertImage({
+      srcURL: previewURL,
+      outWidth,
+      outHeight,
+      pixelSize,
+      paletteLab,
+      nearestColor, // from your utils
+      dither, // new state
+      adjust: { brightness, contrast, gamma, saturation, sharpness },
+    });
 
-  function nearest(paletteLabArr, r, g, b) {
-    const lab = rgbToLab({ r, g, b });
-    let best = paletteLabArr[0];
-    let bestD = Infinity;
-    for (const p of paletteLabArr) {
-      const d = deltaE76(lab, p.lab);
-      if (d < bestD) {
-        bestD = d;
-        best = p;
-      }
-    }
-    return best.rgb;
-  }
-
-  async function convert() {
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    await img.decode();
-
-    const gridW = Math.max(1, Math.floor(outWidth / pixelSize));
-    const gridH = Math.max(1, Math.floor(outHeight / pixelSize));
-
-    const small = document.createElement("canvas");
-    small.width = gridW;
-    small.height = gridH;
-    const sctx = small.getContext("2d");
-    sctx.imageSmoothingEnabled = true;
-
-    const aspectSrc = img.width / img.height;
-    const aspectDst = gridW / gridH;
-    let sx = 0,
-      sy = 0,
-      sw = img.width,
-      sh = img.height;
-    if (aspectSrc > aspectDst) {
-      const targetW = img.height * aspectDst;
-      sx = (img.width - targetW) / 2;
-      sw = targetW;
-    } else {
-      const targetH = img.width / aspectDst;
-      sy = (img.height - targetH) / 2;
-      sh = targetH;
-    }
-
-    sctx.drawImage(img, 0, 0, gridW, gridH);
-
-    const smallData = sctx.getImageData(0, 0, gridW, gridH);
-    const data = smallData.data; // RGBA
-
-    const clamp = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
-
-    for (let y = 0; y < gridH; y++) {
-      for (let x = 0; x < gridW; x++) {
-        const i = (y * gridW + x) * 4;
-
-        const oldR = data[i],
-          oldG = data[i + 1],
-          oldB = data[i + 2];
-        const { r: nr, g: ng, b: nb } = nearest(paletteLab, oldR, oldG, oldB);
-
-        data[i] = nr;
-        data[i + 1] = ng;
-        data[i + 2] = nb;
-        data[i + 3] = 255;
-
-        const errR = oldR - nr,
-          errG = oldG - ng,
-          errB = oldB - nb;
-
-        const diffuse = (xx, yy, factor) => {
-          if (xx < 0 || xx >= gridW || yy < 0 || yy >= gridH) return;
-          const j = (yy * gridW + xx) * 4;
-          data[j] = clamp(data[j] + errR * factor);
-          data[j + 1] = clamp(data[j + 1] + errG * factor);
-          data[j + 2] = clamp(data[j + 2] + errB * factor);
-        };
-
-        diffuse(x + 1, y, 7 / 16);
-        diffuse(x - 1, y + 1, 3 / 16);
-        diffuse(x, y + 1, 5 / 16);
-        diffuse(x + 1, y + 1, 1 / 16);
-      }
-    }
-
-    sctx.putImageData(smallData, 0, 0);
-
-    const large = document.createElement("canvas");
-    large.width = outWidth;
-    large.height = outHeight;
-    const lctx = large.getContext("2d");
-    lctx.imageSmoothingEnabled = false;
-    lctx.drawImage(small, 0, 0, outWidth, outHeight);
-
-    const blob = await new Promise((res) =>
-      large.toBlob((b) => res(b), "image/png")
-    );
-    const url = URL.createObjectURL(blob);
     setResultURL(url);
   }
 
@@ -528,6 +293,64 @@ export default function App() {
               />
               Lock aspect ratio
             </label>
+            <label>Brightness ({brightness})</label>
+            <input
+              type="range"
+              min="-100"
+              max="100"
+              step="1"
+              value={brightness}
+              onChange={(e) => setBrightness(+e.target.value)}
+            />
+
+            <label>Contrast ({contrast})</label>
+            <input
+              type="range"
+              min="-100"
+              max="100"
+              step="1"
+              value={contrast}
+              onChange={(e) => setContrast(+e.target.value)}
+            />
+
+            <label>Gamma ({gamma.toFixed(2)})</label>
+            <input
+              type="range"
+              min="0.1"
+              max="3"
+              step="0.01"
+              value={gamma}
+              onChange={(e) => setGamma(+e.target.value)}
+            />
+
+            <label>Saturation ({saturation.toFixed(2)})</label>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.01"
+              value={saturation}
+              onChange={(e) => setSaturation(+e.target.value)}
+            />
+
+            <label>Sharpness ({sharpness}%)</label>
+            <input
+              type="range"
+              min="0"
+              max="200"
+              step="1"
+              value={sharpness}
+              onChange={(e) => setSharpness(+e.target.value)}
+            />
+            <label style={{ fontSize: 12 }}>Dithering</label>
+            <select value={dither} onChange={(e) => setDither(e.target.value)}>
+              <option value="floyd">Floyd–Steinberg (default)</option>
+              <option value="atkinson">Atkinson</option>
+              <option value="ordered">Ordered (Bayer 8×8)</option>
+              <option value="bayer4">(Bayer 4)</option>
+              <option value="jarvis">Jarvis</option>
+              <option value="none">None</option>
+            </select>
 
             <label style={{ fontSize: 12, opacity: 0.8, color: "white" }}>
               Palette (hex)
@@ -568,7 +391,7 @@ export default function App() {
             </div>
 
             <button
-              onClick={convert}
+              onClick={handleConvert}
               style={{
                 marginTop: 8,
                 background: "white",
