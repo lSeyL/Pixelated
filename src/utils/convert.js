@@ -128,16 +128,6 @@ export async function convertImage({
     }
   }
 
-  const BAYER8 = [
-    [0, 48, 12, 60, 3, 51, 15, 63],
-    [32, 16, 44, 28, 35, 19, 47, 31],
-    [8, 56, 4, 52, 11, 59, 7, 55],
-    [40, 24, 36, 20, 43, 27, 39, 23],
-    [2, 50, 14, 62, 1, 49, 13, 61],
-    [34, 18, 46, 30, 33, 17, 45, 29],
-    [10, 58, 6, 54, 9, 57, 5, 53],
-    [42, 26, 38, 22, 41, 25, 37, 21],
-  ];
   function ditherOrdered() {
     for (let y = 0; y < gridH; y++) {
       for (let x = 0; x < gridW; x++) {
@@ -156,13 +146,32 @@ export async function convertImage({
   }
 
   // --- NEW: Bayer (ordered) variants ---
+  function makeBayer(n) {
+    if (n === 2) {
+      return [
+        [0, 2],
+        [3, 1],
+      ];
+    }
+    const half = makeBayer(n / 2);
+    const res = Array.from({ length: n }, () => Array(n).fill(0));
+    for (let y = 0; y < n / 2; y++) {
+      for (let x = 0; x < n / 2; x++) {
+        const v = half[y][x] * 4;
+        res[y][x] = v;
+        res[y][x + n / 2] = v + 2;
+        res[y + n / 2][x] = v + 3;
+        res[y + n / 2][x + n / 2] = v + 1;
+      }
+    }
+    return res;
+  }
 
-  const BAYER4 = [
-    [0, 8, 2, 10],
-    [12, 4, 14, 6],
-    [3, 11, 1, 9],
-    [15, 7, 13, 5],
-  ]; // values 0..15 (divide by 16)
+  const BAYER2 = makeBayer(2);
+  const BAYER4 = makeBayer(4);
+  const BAYER8 = makeBayer(8);
+  const BAYER16 = makeBayer(16);
+  const BAYER32 = makeBayer(32);
 
   function ditherBayer(matrix) {
     const denom = matrix.length === 4 ? 16 : 64;
@@ -246,6 +255,9 @@ export async function convertImage({
   else if (dither === "atkinson") ditherAtkinson();
   else if (dither === "ordered") ditherBayer(BAYER8); // keep old behavior
   else if (dither === "bayer4") ditherBayer(BAYER4);
+  else if (dither === "bayer2") ditherBayer(BAYER2);
+  else if (dither === "bayer16") ditherBayer(BAYER16);
+  else if (dither === "bayer32") ditherBayer(BAYER32);
   else if (dither === "bayer8" || dither === "bayer") ditherBayer(BAYER8);
   else if (dither === "jarvis") ditherJarvisSerpentine();
   else ditherFloydSerpentine();

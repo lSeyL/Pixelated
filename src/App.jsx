@@ -346,8 +346,13 @@ export default function App() {
             <select value={dither} onChange={(e) => setDither(e.target.value)}>
               <option value="floyd">Floyd–Steinberg (default)</option>
               <option value="atkinson">Atkinson</option>
+
+              <option value="bayer2">Bayer 2x2</option>
+              <option value="bayer4">Bayer 4x4</option>
               <option value="ordered">Ordered (Bayer 8×8)</option>
-              <option value="bayer4">(Bayer 4)</option>
+
+              <option value="bayer16">Bayer 16x16</option>
+              <option value="bayer32">Bayer 32x32</option>
               <option value="jarvis">Jarvis</option>
               <option value="none">None</option>
             </select>
