@@ -120,7 +120,6 @@ export const PRESETS = {
   ],
   Fire: [
     "#000000",
-    "#d2d2d2",
     "#ffffff",
     "#600018",
     "#a50e1e",
@@ -130,15 +129,8 @@ export const PRESETS = {
     "#ff7f27",
     "#f6aa09",
     "#f9dd3b",
-    "#684634",
-    "#95682a",
-    "#dba463",
-    "#7b6352",
-    "#9c846b",
-    "#d6b594",
     "#d18051",
     "#f8b277",
-    "#ffc5a5",
   ],
   "/my unlocked/": [
     "#000000",
