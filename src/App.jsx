@@ -44,6 +44,14 @@ export default function App() {
 
   const [isDragging, setIsDragging] = useState(false);
 
+  function getTimeStamp() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${hh}${mm}${ss}`;
+  }
+
   function handleFiles(files) {
     const f = files?.[0];
     if (!f) return;
@@ -497,7 +505,7 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "center" }}>
               <a
                 href={resultURL}
-                download="pixelated.png"
+                download={`pixelated_${getTimeStamp()}.png`}
                 style={{
                   background: "white",
                   color: "black",
