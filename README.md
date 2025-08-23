@@ -27,6 +27,6 @@ Built with **React + Vite** and deployed on **Vercel**.
 
 ### Clone and install
 ```bash
-git clone https://github.com/your-username/pixelated.git
+git clone https://github.com/lSeyL/Pixelated.git
 cd pixelated
 npm install
